@@ -2,14 +2,31 @@
 
 <div class="search-container">
   <a-input-search
-      v-model:value="value"
-      placeholder="input search text"
-      enter-button="Search"
-      size="large"
-      @search="onSearch"
-    />
-   
-  </div>
+    class="custom-search"
+    v-model:value="searchValue"
+    placeholder="搜索你想要的内容"
+    enter-button="搜索"
+    size="large"
+    @search="onSearch"
+>
+   <!-- 前缀图标 -->
+   <template #prefix>
+    <a-dropdown>
+          <div class="search-icon-container">
+            <img :src="currentEngine.icon" class="search-icon" />
+          </div>
+          <template #overlay>
+            <a-menu @click="changeSearchEngine">
+              <a-menu-item v-for="engine in searchEngines" :key="engine.value">
+                <img :src="engine.icon" class="search-icon" /> {{ engine.label }}
+              </a-menu-item>
+            </a-menu>
+          </template>
+        </a-dropdown>
+      </template>
+    </a-input-search>
+</div>
+
 
   <a-row :gutter="[16, 16]">
     <a-col v-for="(site, index) in websites" :key="index" :span="4">
@@ -84,6 +101,7 @@ import { initWebsites } from "@/data/initWebsites";
 const WebsiteStore = useWebsiteStore();
 
 const websites = WebsiteStore.websites;
+const searchValue = ref("");
 
 const handleDelete = () => {
   WebsiteStore.deleteWebsite(editingSite.value.id);
@@ -120,22 +138,32 @@ const formState = reactive({
   query: '',
 });
 
-const handleSubmit = async () => {
-  try {
-    await formRef.value.validate();
-    
-    // 构造 Bing 搜索 URL
-    const searchUrl = `https://www.bing.com/search?q=${encodeURIComponent(formState.query)}`;
-    
-    // 在新标签页打开
-    window.open(searchUrl, '_blank');
-    
-    // 清空搜索框（可选）
-    formState.query = '';
-  } catch (error) {
-    console.log('验证失败:', error);
-  }
+// 预定义搜索引擎
+const searchEngines = ref([
+  { value: "google", label: "Google", icon: "https://www.google.com/favicon.ico", url: "https://www.google.com/search?q=" },
+  { value: "bing", label: "Bing", icon: "https://www.bing.com/favicon.ico", url: "https://www.bing.com/search?q=" },
+  { value: "duckduckgo", label: "DuckDuckGo", icon: "https://duckduckgo.com/favicon.ico", url: "https://duckduckgo.com/?q=" }
+]);
+
+// 当前选择的搜索引擎
+const searchEngine = ref("google");
+
+// 计算当前搜索引擎
+const currentEngine = computed(() => searchEngines.value.find(engine => engine.value === searchEngine.value));
+
+// 切换搜索引擎
+const changeSearchEngine = (e) => {
+  searchEngine.value = e.key;
 };
+
+// 触发搜索
+const onSearch = (value) => {
+  if (!value) return;
+  const searchUrl = `${currentEngine.value.url}${encodeURIComponent(value)}`;
+  window.open(searchUrl, "_blank");
+};
+
+
 
 // 获取网站图标（示例方法）
 const getFavicon = (url) => {
@@ -162,24 +190,15 @@ const handleEditConfirm = () => {
 <style scoped>
 .search-container {
   display: flex;
-  align-content: center;
-  max-width: 500px;
-}
-
-.search-form {
-  display: flex;
-  gap: 8px;
+  justify-content: center; /* 水平居中 */
+  align-items: center;     /* 垂直居中 */
+  margin-bottom: 20px;     /* 与下面的 card 保持间距 */
   width: 100%;
 }
-
-.search-input {
-  width: 400px;
-}
-
-.search-btn {
-  display: flex;
-  align-items: center;
-  gap: 4px;
+/**通过子组件限制宽度 */
+.custom-search {
+  max-width: 500px; /* 限制宽度 */
+  width: 100%;
 }
 
 
